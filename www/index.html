@@ -135,6 +135,9 @@ input.txt:focus,input.num:focus{outline:2px solid var(--accent);outline-offset:-
 .mrow.sun{background:color-mix(in srgb,var(--soft) 55%,transparent)}
 @media (hover:hover){.mrow:hover{background:var(--soft)}}
 .mfoot{border-top:1px solid var(--line)}
+.tabs button{font-size:14px;letter-spacing:.03em;padding-inline:0}
+.ghead{display:flex;justify-content:space-between;gap:12px;padding:8px 12px;background:var(--soft);font:600 12px var(--display);letter-spacing:.07em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--line)}
+.ghead b{color:var(--ink);font-variant-numeric:tabular-nums}
 .brand .right{display:flex;align-items:center;gap:10px}
 .chip.small{height:34px;padding:0 12px;font-size:12px}
 dialog{width:min(92vw,520px);max-height:88vh;overflow:auto;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:12px;padding:18px;box-shadow:0 12px 40px rgba(0,0,0,.35)}
@@ -156,6 +159,8 @@ dialog .note{min-height:7rem;margin:6px 0 12px;background:var(--bg)}
     <nav class="tabs" role="tablist" aria-label="Bagian aplikasi">
       <button type="button" role="tab" id="tab-month" aria-selected="false" aria-controls="v-month">Bulanan</button>
       <button type="button" role="tab" id="tab-day" aria-selected="true" aria-controls="v-day">Harian</button>
+      <button type="button" role="tab" id="tab-hist" aria-selected="false" aria-controls="v-hist">Riwayat</button>
+      <button type="button" role="tab" id="tab-year" aria-selected="false" aria-controls="v-year">Tahunan</button>
     </nav>
   </header>
 
@@ -199,6 +204,45 @@ dialog .note{min-height:7rem;margin:6px 0 12px;background:var(--bg)}
       <div><p class="lab">Simpan laporan hari ini</p>
         <div class="exrow"><button type="button" class="btn" data-ex="png" data-w="day">Simpan gambar</button><button type="button" class="btn ghost" data-ex="pdf" data-w="day">Simpan PDF</button></div>
         <p class="msg" id="msgDay" aria-live="polite"></p></div>
+    </section>
+
+    <section id="v-hist" role="tabpanel" aria-labelledby="tab-hist" hidden>
+      <div class="msum">
+        <div class="mtotal"><span class="cap">Total semua hari tercatat</span><strong id="hTotal">Rp 0</strong></div>
+        <div class="mstats">
+          <div><span class="cap">Hari tercatat</span><b id="hCount">0</b></div>
+          <div><span class="cap">Rata-rata per hari</span><b id="hAvg">0</b></div>
+          <div><span class="cap">Sejak</span><b id="hSince">-</b></div>
+        </div>
+      </div>
+      <p class="hint" id="hHint"></p>
+      <div class="sheet">
+        <div class="row head g-m"><span>Tgl</span><span class="r hc">Cash</span><span class="r hf">Transfer</span><span class="r">Total</span></div>
+        <div id="hRows"></div>
+      </div>
+    </section>
+
+    <section id="v-year" role="tabpanel" aria-labelledby="tab-year" hidden>
+      <div class="pager">
+        <button type="button" class="ic" id="yPrev" aria-label="Tahun sebelumnya">&#8249;</button>
+        <h2 id="yLabel"></h2>
+        <button type="button" class="ic" id="yNext" aria-label="Tahun berikutnya">&#8250;</button>
+      </div>
+      <div class="msum">
+        <div class="mtotal"><span class="cap">Pendapatan bersih tahun ini</span><strong id="yTotal">Rp 0</strong></div>
+        <div class="mstats">
+          <div><span class="cap">Cash</span><b class="c" id="yCash">0</b></div>
+          <div><span class="cap">Transfer</span><b class="f" id="yTf">0</b></div>
+          <div><span class="cap">Pengeluaran</span><b class="o" id="yOut">0</b></div>
+          <div><span class="cap">Hari tercatat</span><b id="yDays">0</b></div>
+        </div>
+      </div>
+      <p class="hint">Total tiap bulan dihitung dari angka harian. Ketuk bulan untuk melihat rincian per harinya.</p>
+      <div class="sheet">
+        <div class="row head g-m"><span>Bulan</span><span class="r hc">Cash</span><span class="r hf">Transfer</span><span class="r">Total</span></div>
+        <div id="yRows"></div>
+        <div class="row tot g-m mfoot"><span>Total</span><span class="v c" id="yfCash"></span><span class="v f" id="yfTf"></span><span class="v" id="yfAll"></span></div>
+      </div>
     </section>
   </main>
 </div>
@@ -470,15 +514,86 @@ dialog .note{min-height:7rem;margin:6px 0 12px;background:var(--bg)}
   $('#dToday').addEventListener('click',function(){setDate(ymd(new Date()))});
   $('#dDate').addEventListener('change',function(e){setDate(e.target.value)});
 
+  var VIEWS=['month','day','hist','year'];
+  var BULAN3=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+  var yY=mY;
+  function hasData(d){
+    var c=calc(d);
+    return c.any||d.k.trim()!==''||d.s.some(function(r){return r.t.trim()!==''})||d.o.some(function(r,i){return i>0&&r.n.trim()!==''})||d.x.some(function(r){return r.n.trim()!==''});
+  }
+  function renderHist(){
+    var keys=Object.keys(days).filter(function(k){return /^\d{4}-\d{2}-\d{2}$/.test(k)&&hasData(days[k])}).sort().reverse();
+    var html='',grp='',tAll=0,cnt=0,gHtml='',gTot=0,today=ymd(new Date());
+    function flushG(){if(grp)html+='<div class="ghead"><span>'+grp+'</span><b>Rp '+fmt(gTot)+'</b></div>'+gHtml}
+    keys.forEach(function(k){
+      var dt=parse(k),c=calc(days[k]),g=BULAN[dt.getMonth()]+' '+dt.getFullYear();
+      if(g!==grp){flushG();grp=g;gHtml='';gTot=0}
+      var cls='mrow'+(k===today?' today':'')+(dt.getDay()===0?' sun':'');
+      var lab='<span class="md"><b>'+dt.getDate()+'</b>'+HARI[dt.getDay()]+'</span>';
+      if(c.any){
+        cnt++;tAll+=c.allT;gTot+=c.allT;
+        gHtml+='<button type="button" class="'+cls+'" data-date="'+k+'">'+lab+'<span class="c'+(c.netC<0?' o':'')+'">'+fmt(c.netC)+'</span><span class="f'+(c.netF<0?' o':'')+'">'+fmt(c.netF)+'</span><span class="t'+(c.allT<0?' o':'')+'">'+fmt(c.allT)+'</span></button>';
+      }else{
+        gHtml+='<button type="button" class="'+cls+'" data-date="'+k+'">'+lab+'<span class="e">—</span><span class="e">—</span><span class="e">—</span></button>';
+      }
+    });
+    flushG();
+    $('#hRows').innerHTML=html;
+    $('#hTotal').textContent='Rp '+fmt(tAll);
+    $('#hCount').textContent=String(cnt);
+    $('#hAvg').textContent=cnt?fmt(tAll/cnt):'0';
+    var first=keys.length?parse(keys[keys.length-1]):null;
+    $('#hSince').textContent=first?first.getDate()+' '+BULAN3[first.getMonth()]+' '+first.getFullYear():'-';
+    $('#hHint').textContent=keys.length?'Hari terbaru di atas. Ketuk satu hari untuk membuka atau mengubah catatannya.':'Belum ada hari yang dicatat. Isi tab Harian, nanti riwayatnya muncul di sini.';
+  }
+  function renderYear(){
+    $('#yLabel').textContent=String(yY);
+    var m=[];for(var i=0;i<12;i++)m.push({cC:0,cF:0,out:0,cnt:0});
+    Object.keys(days).forEach(function(k){
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(k)||k.slice(0,4)!==String(yY))return;
+      var c=calc(days[k]);
+      if(!c.any)return;
+      var o=m[Number(k.slice(5,7))-1];
+      o.cC+=c.netC;o.cF+=c.netF;o.out+=c.outC+c.outF;o.cnt++;
+    });
+    var tC=0,tF=0,tO=0,tD=0,html='',now=new Date();
+    m.forEach(function(o,i){
+      tC+=o.cC;tF+=o.cF;tO+=o.out;tD+=o.cnt;
+      var cls='mrow'+(yY===now.getFullYear()&&i===now.getMonth()?' today':'');
+      var lab='<span class="md"><b>'+BULAN3[i]+'</b></span>';
+      if(o.cnt){
+        var t=o.cC+o.cF;
+        html+='<button type="button" class="'+cls+'" data-m="'+i+'">'+lab+'<span class="c'+(o.cC<0?' o':'')+'">'+fmt(o.cC)+'</span><span class="f'+(o.cF<0?' o':'')+'">'+fmt(o.cF)+'</span><span class="t'+(t<0?' o':'')+'">'+fmt(t)+'</span></button>';
+      }else{
+        html+='<button type="button" class="'+cls+'" data-m="'+i+'">'+lab+'<span class="e">—</span><span class="e">—</span><span class="e">—</span></button>';
+      }
+    });
+    $('#yRows').innerHTML=html;
+    $('#yTotal').textContent='Rp '+fmt(tC+tF);
+    $('#yCash').textContent=fmt(tC);$('#yTf').textContent=fmt(tF);$('#yOut').textContent=fmt(tO);$('#yDays').textContent=String(tD);
+    $('#yfCash').textContent=fmt(tC);$('#yfTf').textContent=fmt(tF);$('#yfAll').textContent=fmt(tC+tF);
+  }
   function show(v){
     view=v;
-    $('#v-month').hidden=v!=='month';$('#v-day').hidden=v!=='day';
-    $('#tab-month').setAttribute('aria-selected',String(v==='month'));
-    $('#tab-day').setAttribute('aria-selected',String(v==='day'));
+    VIEWS.forEach(function(k){
+      $('#v-'+k).hidden=k!==v;
+      $('#tab-'+k).setAttribute('aria-selected',String(k===v));
+    });
     if(v==='month')renderMonth();
+    if(v==='hist')renderHist();
+    if(v==='year'){yY=mY;renderYear()}
   }
-  $('#tab-month').addEventListener('click',function(){show('month')});
-  $('#tab-day').addEventListener('click',function(){show('day')});
+  VIEWS.forEach(function(k){$('#tab-'+k).addEventListener('click',function(){show(k)})});
+  $('#hRows').addEventListener('click',function(e){
+    var b=e.target.closest('button[data-date]');
+    if(b){setDate(b.getAttribute('data-date'));show('day');window.scrollTo(0,0)}
+  });
+  $('#yRows').addEventListener('click',function(e){
+    var b=e.target.closest('button[data-m]');
+    if(b){mY=yY;mM=Number(b.getAttribute('data-m'));show('month');window.scrollTo(0,0)}
+  });
+  $('#yPrev').addEventListener('click',function(){yY--;renderYear()});
+  $('#yNext').addEventListener('click',function(){yY++;renderYear()});
 
 /*EXPORT-START*/
   var PW=595,PM=36,PC=523,RH=16;
@@ -718,7 +833,7 @@ dialog .note{min-height:7rem;margin:6px 0 12px;background:var(--bg)}
     keys.forEach(function(k){days[k]=norm(o.days[k])});
     try{localStorage.setItem(LKEY,JSON.stringify(days));mode='local'}catch(e){mode='mem'}
     restorePending=false;$('#bkRestore').textContent='Pulihkan';$('#bkIn').value='';
-    idleStat();renderAll();msg(keys.length+' hari dipulihkan.');
+    idleStat();renderAll();show(view);msg(keys.length+' hari dipulihkan.');
   });
 
   initStore();
