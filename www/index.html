@@ -144,6 +144,7 @@ dialog .note{min-height:7rem;margin:6px 0 12px;background:var(--bg)}
 .btn{min-height:44px;padding:0 16px;border-radius:8px;border:1px solid var(--accent);background:var(--accent);color:var(--on-accent);font:600 14px var(--display);letter-spacing:.05em;text-transform:uppercase}
 .btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
 .bkrow{display:flex;gap:8px;flex-wrap:wrap}
+.exrow{display:flex;gap:8px;flex-wrap:wrap}
 .msg{min-height:1.4em;margin:8px 0 14px;font-size:13px;color:var(--muted)}
 </style>
 </head>
@@ -181,6 +182,9 @@ dialog .note{min-height:7rem;margin:6px 0 12px;background:var(--bg)}
         <div class="row tot g-m mfoot"><span>Total</span><span class="v c" id="fCash"></span><span class="v f" id="fTf"></span><span class="v" id="fAll"></span></div>
       </div>
       <p class="hint">Angka per hari sudah dikurangi pengeluaran, cash dari cash dan transfer dari transfer.</p>
+      <div><p class="lab">Simpan rekap bulan ini</p>
+        <div class="exrow"><button type="button" class="btn" data-ex="png" data-w="month">Simpan gambar</button><button type="button" class="btn ghost" data-ex="pdf" data-w="month">Simpan PDF</button></div>
+        <p class="msg" id="msgMonth" aria-live="polite"></p></div>
     </section>
 
     <section id="v-day" role="tabpanel" aria-labelledby="tab-day">
@@ -192,6 +196,9 @@ dialog .note{min-height:7rem;margin:6px 0 12px;background:var(--bg)}
       </div>
       <h2 class="dtitle" id="dTitle"></h2>
       <div id="form" style="display:flex;flex-direction:column;gap:16px"></div>
+      <div><p class="lab">Simpan laporan hari ini</p>
+        <div class="exrow"><button type="button" class="btn" data-ex="png" data-w="day">Simpan gambar</button><button type="button" class="btn ghost" data-ex="pdf" data-w="day">Simpan PDF</button></div>
+        <p class="msg" id="msgDay" aria-live="polite"></p></div>
     </section>
   </main>
 </div>
@@ -472,6 +479,214 @@ dialog .note{min-height:7rem;margin:6px 0 12px;background:var(--bg)}
   }
   $('#tab-month').addEventListener('click',function(){show('month')});
   $('#tab-day').addEventListener('click',function(){show('day')});
+
+/*EXPORT-START*/
+  var PW=595,PM=36,PC=523,RH=16;
+  var K_INK='#15221c',K_MUT='#56665d',K_LINE='#d6ddd8',K_SOFT='#e7ede8',K_GRN='#0e7c52',K_CASH='#9a5b00',K_TF='#1c58c4',K_OUT='#b3261e';
+  function newDoc(){return {ops:[],y:PM,h:0}}
+  function opT(d,x,y,s,o){o=o||{};d.ops.push({k:'t',x:x,y:y,s:String(s),sz:o.sz||9.5,b:!!o.b,c:o.c||K_INK,a:o.a||'l'})}
+  function opR(d,x,y,w,h,f){d.ops.push({k:'r',x:x,y:y,w:w,h:h,f:f})}
+  function opL(d,x1,y1,x2,y2,c){d.ops.push({k:'l',x1:x1,y1:y1,x2:x2,y2:y2,c:c})}
+  function fit(t,w,sz){var max=Math.max(3,Math.floor(w/(sz*0.5)));t=String(t);return t.length>max?t.slice(0,max-2)+'..':t}
+  function pHead(d,labels,cols){
+    opR(d,PM,d.y,PC,RH,K_SOFT);
+    labels.forEach(function(t,i){opT(d,cols[i].x,d.y+11,t,{sz:8,b:true,c:cols[i].hc||K_MUT,a:cols[i].a})});
+    d.y+=RH;
+  }
+  function pRow(d,vals,cols,o){
+    o=o||{};
+    if(o.bg)opR(d,PM,d.y,PC,RH,o.bg);
+    vals.forEach(function(t,i){
+      if(t===''||t==null)return;
+      var neg=cols[i].a==='r'&&String(t).charAt(0)==='-';
+      opT(d,cols[i].x,d.y+11.5,(o.nf||cols[i].a==='r')?t:fit(t,cols[i].w||200,o.sz||9.5),{sz:o.sz||9.5,b:!!o.b,c:neg?K_OUT:K_INK,a:cols[i].a});
+    });
+    opL(d,PM,d.y+RH,PM+PC,d.y+RH,K_LINE);
+    d.y+=RH;
+  }
+  function pSect(d,title){d.y+=12;opT(d,PM,d.y+9,title.toUpperCase(),{sz:8.5,b:true,c:K_GRN});d.y+=14}
+  function pKV(d,k,v,o){
+    o=o||{};
+    if(o.bg)opR(d,PM,d.y,PC,22,o.bg);
+    opT(d,PM+8,d.y+15,k,{sz:o.sz||10,b:true,c:o.fg||K_MUT});
+    opT(d,PM+PC-8,d.y+15,v,{sz:o.vsz||11,b:true,c:o.fg||K_INK,a:'r'});
+    if(!o.bg)opL(d,PM,d.y+22,PM+PC,d.y+22,K_LINE);
+    d.y+=22;
+  }
+  function pTitle(d,sub){
+    opT(d,PM,PM+18,'Kas Lapangan',{sz:20,b:true,c:K_GRN});
+    opT(d,PM,PM+36,sub,{sz:11,c:K_INK});
+    opR(d,PM,PM+43,PC,2,K_GRN);
+    d.y=PM+52;
+  }
+  function wrapText(t,max){
+    var out=[];
+    String(t).split(/\r?\n/).forEach(function(par){
+      var line='';
+      par.split(/\s+/).forEach(function(w){
+        if(!w)return;
+        while(w.length>max){if(line){out.push(line);line=''}out.push(w.slice(0,max));w=w.slice(max)}
+        if((line+' '+w).trim().length>max){out.push(line);line=w}else line=(line+' '+w).trim();
+      });
+      out.push(line);
+    });
+    return out;
+  }
+  var rp=function(n){return 'Rp '+fmt(n)};
+  function buildDay(date){
+    var d=days[date]||blank(),c=calc(d),dt=parse(date),doc=newDoc();
+    pTitle(doc,HARIF[dt.getDay()]+', '+dt.getDate()+' '+BULAN[dt.getMonth()]+' '+dt.getFullYear());
+    var CS=[{x:PM+6,a:'l',w:76},{x:PM+92,a:'l',w:210},{x:448,a:'r',hc:K_CASH},{x:PM+PC-6,a:'r',hc:K_TF}];
+    var CI=[{x:PM+6,a:'l',w:300},{x:448,a:'r',hc:K_CASH},{x:PM+PC-6,a:'r',hc:K_TF}];
+    var tot={b:true,bg:K_SOFT,nf:true};
+    pSect(doc,'Jadwal lapangan');
+    pHead(doc,['JAM','NAMA TIM','CASH','TRANSFER'],CS);
+    d.s.forEach(function(r,i){pRow(doc,[SL[i],r.t,r.c?fmt(r.c):'',r.f?fmt(r.f):''],CS)});
+    pRow(doc,['Total lapangan','',fmt(c.lapC),fmt(c.lapF)],CS,tot);
+    pSect(doc,'Pendapatan lainnya');
+    pHead(doc,['KETERANGAN','CASH','TRANSFER'],CI);
+    d.o.forEach(function(r){pRow(doc,[r.n,r.c?fmt(r.c):'',r.f?fmt(r.f):''],CI)});
+    pRow(doc,['Total lainnya',fmt(c.lainC),fmt(c.lainF)],CI,tot);
+    pRow(doc,['Lapangan + lainnya',fmt(c.incC),fmt(c.incF)],CI,tot);
+    pSect(doc,'Pengeluaran');
+    pHead(doc,['KEPERLUAN','CASH','TRANSFER'],CI);
+    d.x.forEach(function(r){pRow(doc,[r.n,r.m==='c'&&r.a?fmt(r.a):'',r.m==='f'&&r.a?fmt(r.a):''],CI)});
+    pRow(doc,['Total pengeluaran',fmt(c.outC),fmt(c.outF)],CI,tot);
+    pSect(doc,'Setelah pengeluaran');
+    pHead(doc,['LAPANGAN + LAINNYA - PENGELUARAN','CASH','TRANSFER'],CI);
+    pRow(doc,['Total',fmt(c.netC),fmt(c.netF)],CI,tot);
+    pSect(doc,'Rekap');
+    pKV(doc,'Total seluruh cash',rp(c.netC));
+    pKV(doc,'Total seluruh transfer',rp(c.netF));
+    pKV(doc,'Total cash + TF',rp(c.allT),{bg:K_GRN,fg:'#ffffff',sz:10.5,vsz:14});
+    pSect(doc,'Keterangan');
+    var lines=d.k.trim()?wrapText(d.k,95):['-'];
+    lines.forEach(function(l){opT(doc,PM+2,doc.y+10,l,{sz:9.5});doc.y+=13});
+    doc.y+=14;
+    opT(doc,PM,doc.y+8,'Dibuat dengan aplikasi Kas Lapangan',{sz:7.5,c:K_MUT});
+    doc.h=doc.y+PM;
+    return doc;
+  }
+  function buildMonth(){
+    var n=new Date(mY,mM+1,0).getDate(),doc=newDoc(),tC=0,tF=0,tO=0,cnt=0,rows=[];
+    for(var i=1;i<=n;i++){
+      var date=mY+'-'+pad(mM+1)+'-'+pad(i),dt=new Date(mY,mM,i),d=days[date],c=d?calc(d):null;
+      var lab=HARI[dt.getDay()]+' '+i;
+      if(c&&c.any){cnt++;tC+=c.netC;tF+=c.netF;tO+=c.outC+c.outF;rows.push([lab,fmt(c.netC),fmt(c.netF),fmt(c.allT)])}
+      else rows.push([lab,'-','-','-']);
+    }
+    pTitle(doc,'Rekap bulanan, '+BULAN[mM]+' '+mY);
+    pSect(doc,'Ringkasan');
+    pKV(doc,'Pendapatan bersih',rp(tC+tF),{bg:K_GRN,fg:'#ffffff',sz:10.5,vsz:14});
+    pKV(doc,'Cash',rp(tC));
+    pKV(doc,'Transfer',rp(tF));
+    pKV(doc,'Pengeluaran',rp(tO));
+    pKV(doc,'Hari tercatat',cnt+' dari '+n);
+    var CM=[{x:PM+6,a:'l',w:120},{x:300,a:'r',hc:K_CASH},{x:430,a:'r',hc:K_TF},{x:PM+PC-6,a:'r'}];
+    pSect(doc,'Per hari (setelah pengeluaran)');
+    pHead(doc,['TGL','CASH','TRANSFER','TOTAL'],CM);
+    rows.forEach(function(r){pRow(doc,r,CM)});
+    pRow(doc,['Total',fmt(tC),fmt(tF),fmt(tC+tF)],CM,{b:true,bg:K_SOFT,nf:true});
+    doc.y+=14;
+    opT(doc,PM,doc.y+8,'Dibuat dengan aplikasi Kas Lapangan',{sz:7.5,c:K_MUT});
+    doc.h=doc.y+PM;
+    return doc;
+  }
+  function toCanvas(doc,scale){
+    var cv=document.createElement('canvas');
+    cv.width=PW*scale;cv.height=Math.ceil(doc.h*scale);
+    var x=cv.getContext('2d');
+    x.scale(scale,scale);x.fillStyle='#ffffff';x.fillRect(0,0,PW,doc.h);
+    doc.ops.forEach(function(o){
+      if(o.k==='r'){x.fillStyle=o.f;x.fillRect(o.x,o.y,o.w,o.h)}
+      else if(o.k==='l'){x.strokeStyle=o.c;x.lineWidth=0.6;x.beginPath();x.moveTo(o.x1,o.y1);x.lineTo(o.x2,o.y2);x.stroke()}
+      else{x.fillStyle=o.c;x.font=(o.b?'bold ':'')+o.sz+'px Helvetica, Arial, sans-serif';x.textAlign=o.a==='r'?'right':'left';x.fillText(o.s,o.x,o.y)}
+    });
+    return cv;
+  }
+  function pdfW(s,sz,b){
+    var w=0;
+    for(var i=0;i<s.length;i++){
+      var ch=s.charAt(i);
+      w+=/[0-9]/.test(ch)?0.556:ch==='.'||ch===' '||ch===','?0.278:ch==='-'?0.333:/[A-Z]/.test(ch)?(b?0.72:0.68):/[a-z]/.test(ch)?(b?0.58:0.54):0.55;
+    }
+    return w*sz;
+  }
+  function pn(v){return String(Math.round(v*100)/100)}
+  function rgb(h){return [1,3,5].map(function(i){return (parseInt(h.substr(i,2),16)/255).toFixed(3)}).join(' ')}
+  function pdfEsc(s){return String(s).replace(/[^\x20-\xff]/g,'?').replace(/\\/g,'\\\\').replace(/\(/g,'\\(').replace(/\)/g,'\\)')}
+  function buildPdf(doc){
+    var H=Math.ceil(doc.h),c='';
+    doc.ops.forEach(function(o){
+      if(o.k==='r')c+=rgb(o.f)+' rg '+pn(o.x)+' '+pn(H-o.y-o.h)+' '+pn(o.w)+' '+pn(o.h)+' re f\n';
+      else if(o.k==='l')c+=rgb(o.c)+' RG 0.6 w '+pn(o.x1)+' '+pn(H-o.y1)+' m '+pn(o.x2)+' '+pn(H-o.y2)+' l S\n';
+      else{
+        var s=pdfEsc(o.s),x=o.a==='r'?o.x-pdfW(String(o.s),o.sz,o.b):o.x;
+        c+='BT '+rgb(o.c)+' rg /'+(o.b?'F2':'F1')+' '+o.sz+' Tf '+pn(x)+' '+pn(H-o.y)+' Td ('+s+') Tj ET\n';
+      }
+    });
+    var objs=[
+      '<< /Type /Catalog /Pages 2 0 R >>',
+      '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+      '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 '+PW+' '+H+'] /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> /Contents 4 0 R >>',
+      '<< /Length '+c.length+' >>\nstream\n'+c+'endstream',
+      '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>',
+      '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>'
+    ];
+    var out='%PDF-1.4\n',offs=[];
+    objs.forEach(function(b,i){offs.push(out.length);out+=(i+1)+' 0 obj\n'+b+'\nendobj\n'});
+    var xr=out.length;
+    out+='xref\n0 '+(objs.length+1)+'\n0000000000 65535 f \n'+offs.map(function(o){return String(o).padStart(10,'0')+' 00000 n \n'}).join('')+'trailer\n<< /Size '+(objs.length+1)+' /Root 1 0 R >>\nstartxref\n'+xr+'\n%%EOF';
+    var u=new Uint8Array(out.length);
+    for(var i=0;i<out.length;i++)u[i]=out.charCodeAt(i)&255;
+    return u;
+  }
+  function toB64(u){
+    var s='';
+    for(var i=0;i<u.length;i+=8192)s+=String.fromCharCode.apply(null,u.subarray(i,i+8192));
+    return btoa(s);
+  }
+  function fromB64(b){
+    var bin=atob(b),u=new Uint8Array(bin.length);
+    for(var i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);
+    return u;
+  }
+  async function deliver(name,mime,u8){
+    var cap=window.Capacitor;
+    var native=cap&&cap.isNativePlatform&&cap.isNativePlatform();
+    if(native&&cap.Plugins&&cap.Plugins.Filesystem&&cap.Plugins.Share){
+      var f=await cap.Plugins.Filesystem.writeFile({path:name,data:toB64(u8),directory:'CACHE'});
+      await cap.Plugins.Share.share({title:name,dialogTitle:'Simpan atau kirim file',files:[f.uri]});
+      return;
+    }
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(new Blob([u8],{type:mime}));
+    a.download=name;document.body.appendChild(a);a.click();a.remove();
+    setTimeout(function(){URL.revokeObjectURL(a.href)},4000);
+  }
+  async function doExport(kind,which){
+    var msgEl=$(which==='month'?'#msgMonth':'#msgDay');
+    var doc=which==='month'?buildMonth():buildDay(cur);
+    var base=which==='month'?'Kas-Lapangan-'+mY+'-'+pad(mM+1):'Kas-Lapangan-'+cur;
+    msgEl.textContent='Menyiapkan file…';
+    try{
+      if(kind==='png'){
+        var cv=toCanvas(doc,3);
+        await deliver(base+'.png','image/png',fromB64(cv.toDataURL('image/png').split(',')[1]));
+      }else{
+        await deliver(base+'.pdf','application/pdf',buildPdf(doc));
+      }
+      msgEl.textContent='';
+    }catch(e){
+      var m=String(e&&e.message||e);
+      msgEl.textContent=/cancel/i.test(m)?'':'Gagal membuat file. Coba lagi.';
+    }
+  }
+  document.addEventListener('click',function(e){
+    var b=e.target.closest&&e.target.closest('button[data-ex]');
+    if(b)doExport(b.getAttribute('data-ex'),b.getAttribute('data-w'));
+  });
+  /*EXPORT-END*/
 
   /* cadangan */
   var bk=$('#bk'),restorePending=false;
