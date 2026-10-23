@@ -1,0 +1,8 @@
+{
+  "appId": "id.kaslapangan.app",
+  "appName": "Kas Lapangan",
+  "webDir": "www",
+  "android": {
+    "backgroundColor": "#f2f4f1"
+  }
+}
