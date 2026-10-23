@@ -148,6 +148,10 @@ dialog .note{min-height:7rem;margin:6px 0 12px;background:var(--bg)}
 .btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
 .bkrow{display:flex;gap:8px;flex-wrap:wrap}
 .exrow{display:flex;gap:8px;flex-wrap:wrap}
+.sheet>.hint{padding:0 12px 10px}
+.g-slot .wide{grid-column:1/3}
+dialog details{margin:16px 0 14px}
+dialog summary{cursor:pointer;min-height:44px;display:flex;align-items:center;font:600 13px var(--display);letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
 .msg{min-height:1.4em;margin:8px 0 14px;font-size:13px;color:var(--muted)}
 </style>
 </head>
@@ -202,7 +206,8 @@ dialog .note{min-height:7rem;margin:6px 0 12px;background:var(--bg)}
       <h2 class="dtitle" id="dTitle"></h2>
       <div id="form" style="display:flex;flex-direction:column;gap:16px"></div>
       <div><p class="lab">Simpan laporan hari ini</p>
-        <div class="exrow"><button type="button" class="btn" data-ex="png" data-w="day">Simpan gambar</button><button type="button" class="btn ghost" data-ex="pdf" data-w="day">Simpan PDF</button></div>
+        <div class="exrow"><button type="button" class="btn" data-ex="png" data-w="day">Simpan gambar</button><button type="button" class="btn ghost" data-ex="pdf" data-w="day">Simpan PDF</button><button type="button" class="btn ghost" data-ex="file" data-w="day">Simpan file</button></div>
+        <p class="hint">Gambar dan PDF hanya memuat baris yang terisi. File berisi catatan hari ini dan bisa dibuka di HP lain lewat Cadangan, Buka file.</p>
         <p class="msg" id="msgDay" aria-live="polite"></p></div>
     </section>
 
@@ -249,12 +254,18 @@ dialog .note{min-height:7rem;margin:6px 0 12px;background:var(--bg)}
 
 <dialog id="bk" aria-labelledby="bkT">
   <h2 id="bkT">Cadangan data</h2>
-  <p class="hint">Data kas tersimpan di HP ini. Salin cadangan secara berkala, lalu simpan di tempat aman seperti catatan WhatsApp atau email ke diri sendiri.</p>
-  <p style="margin:12px 0 0"><button type="button" class="btn" id="bkCopy">Salin cadangan</button></p>
+  <p class="hint">Data kas tersimpan di HP ini. Simpan file cadangan secara berkala, lalu kirim ke WhatsApp, email, atau Drive. Di HP lain, ketuk Buka file dan pilih file itu.</p>
+  <div class="bkrow" style="margin-top:12px"><button type="button" class="btn" id="bkFile">Simpan file</button><button type="button" class="btn ghost" id="bkPickBtn">Buka file</button></div>
+  <input type="file" id="bkPick" accept=".json,application/json,text/plain,*/*" hidden>
   <p class="msg" id="bkMsg" aria-live="polite"></p>
-  <label class="lab" for="bkIn">Pulihkan dari cadangan</label>
-  <textarea id="bkIn" class="note" placeholder="Tempel teks cadangan di sini"></textarea>
-  <div class="bkrow"><button type="button" class="btn" id="bkRestore">Pulihkan</button><button type="button" class="btn ghost" id="bkClose">Tutup</button></div>
+  <p style="margin:0 0 10px"><button type="button" class="btn" id="bkApply" hidden>Pulihkan</button></p>
+  <details>
+    <summary>Cara lain: salin teks</summary>
+    <p style="margin:6px 0 0"><button type="button" class="btn ghost" id="bkCopy">Salin teks cadangan</button></p>
+    <textarea id="bkIn" class="note" placeholder="Atau tempel teks cadangan di sini"></textarea>
+    <button type="button" class="btn" id="bkRestore">Pulihkan dari teks</button>
+  </details>
+  <div class="bkrow"><button type="button" class="btn ghost" id="bkClose">Tutup</button></div>
 </dialog>
 
 <script>
@@ -275,26 +286,37 @@ dialog .note{min-height:7rem;margin:6px 0 12px;background:var(--bg)}
 
   function blank(){
     var o=[];
-    for(var i=0;i<18;i++)o.push({t:'',c:0,f:0});
+    for(var i=0;i<18;i++)o.push({t:'',c:null,f:null});
     var l=[];
-    for(i=0;i<5;i++)l.push({n:i?'':'Air',c:0,f:0});
+    for(i=0;i<5;i++)l.push({n:i?'':'Air',c:null,f:null});
     var x=[];
-    for(i=0;i<5;i++)x.push({n:'',a:0,m:'c'});
-    return {s:o,o:l,x:x,k:''};
+    for(i=0;i<5;i++)x.push({n:'',a:null,m:'c'});
+    var e=[];
+    for(i=0;i<10;i++)e.push({t:'',c:null,f:null});
+    return {v:2,s:o,o:l,x:x,e:e,k:''};
+  }
+  function amt(v,mig){
+    if(v===null||v===undefined||v==='')return null;
+    var n=num(v);
+    return (mig&&n===0)?null:n;
   }
   function norm(d){
     var b=blank();
     if(!d||typeof d!=='object')return b;
-    (d.s||[]).slice(0,18).forEach(function(r,i){if(r)b.s[i]={t:String(r.t||''),c:num(r.c),f:num(r.f)}});
-    (d.o||[]).slice(0,5).forEach(function(r,i){if(r)b.o[i]={n:i?String(r.n||''):'Air',c:num(r.c),f:num(r.f)}});
-    (d.x||[]).slice(0,5).forEach(function(r,i){if(r)b.x[i]={n:String(r.n||''),a:num(r.a),m:r.m==='f'?'f':'c'}});
+    var mig=d.v!==2;
+    (d.s||[]).slice(0,18).forEach(function(r,i){if(r)b.s[i]={t:String(r.t||''),c:amt(r.c,mig),f:amt(r.f,mig)}});
+    (d.o||[]).slice(0,5).forEach(function(r,i){if(r)b.o[i]={n:i?String(r.n||''):'Air',c:amt(r.c,mig),f:amt(r.f,mig)}});
+    (d.x||[]).slice(0,5).forEach(function(r,i){if(r)b.x[i]={n:String(r.n||''),a:amt(r.a,mig),m:r.m==='f'?'f':'c'}});
+    (d.e||[]).slice(0,10).forEach(function(r,i){if(r)b.e[i]={t:String(r.t||''),c:amt(r.c,mig),f:amt(r.f,mig)}});
     b.k=String(d.k||'');
     return b;
   }
-  function sum(a,k){return a.reduce(function(t,r){return t+num(r[k])},0)}
+  /* 1 = Member, 2 = Turnamen: kode, bukan uang */
+  function val(v){return (v==null||v===1||v===2)?0:num(v)}
+  function sum(a,k){return a.reduce(function(t,r){return t+val(r[k])},0)}
   function calc(d){
     var r={};
-    r.lapC=sum(d.s,'c');r.lapF=sum(d.s,'f');
+    r.lapC=sum(d.s,'c')+sum(d.e,'c');r.lapF=sum(d.s,'f')+sum(d.e,'f');
     r.lainC=sum(d.o,'c');r.lainF=sum(d.o,'f');
     r.incC=r.lapC+r.lainC;r.incF=r.lapF+r.lainF;
     r.outC=d.x.reduce(function(t,e){return e.m==='c'?t+num(e.a):t},0);
@@ -355,7 +377,7 @@ dialog .note{min-height:7rem;margin:6px 0 12px;background:var(--bg)}
     return '<input class="txt'+(ro?' ro':'')+'" data-g="'+g+'" data-i="'+i+'" data-f="'+f+'" value="'+esc(val)+'" placeholder="'+esc(ph)+'" aria-label="'+esc(label)+'" autocomplete="off"'+(ro?' readonly':'')+'>';
   }
   function nm(g,i,f,val,label){
-    return '<input class="num" inputmode="numeric" data-g="'+g+'" data-i="'+i+'" data-f="'+f+'" value="'+(val?fmt(val):'')+'" placeholder="0" aria-label="'+esc(label)+'" autocomplete="off">';
+    return '<input class="num" inputmode="numeric" data-g="'+g+'" data-i="'+i+'" data-f="'+f+'" value="'+(val==null?'':fmt(val))+'" placeholder="0" aria-label="'+esc(label)+'" autocomplete="off">';
   }
   function via(i,m){
     return '<span class="via" role="group" aria-label="Dibayar via, pengeluaran '+(i+1)+'">'+
@@ -367,6 +389,11 @@ dialog .note{min-height:7rem;margin:6px 0 12px;background:var(--bg)}
       return '<div class="row g-slot"><span class="jam">'+SL[i]+'</span>'+
         txt('s',i,'t',r.t,'Nama tim','Nama tim '+SL[i])+nm('s',i,'c',r.c,'Cash '+SL[i])+nm('s',i,'f',r.f,'Transfer '+SL[i])+'</div>';
     }).join('');
+    var ext=d.e.map(function(r,i){
+      return '<div class="row g-slot">'+
+        txt('e',i,'t',r.t,'Tulis sendiri (misal DP BENTE tgl 08/10 pkl 20.00)','Tambahan '+(i+1)+', keterangan').replace('class="txt"','class="txt wide" maxlength="70"')+
+        nm('e',i,'c',r.c,'Cash tambahan '+(i+1))+nm('e',i,'f',r.f,'Transfer tambahan '+(i+1))+'</div>';
+    }).join('');
     var lain=d.o.map(function(r,i){
       return '<div class="row g-inc">'+(i===0?txt('o',0,'n','Air','','Pendapatan lainnya 1: Air',true):txt('o',i,'n',r.n,'Isi manual','Pendapatan lainnya '+(i+1)))+
         nm('o',i,'c',r.c,'Cash pendapatan lainnya '+(i+1))+nm('o',i,'f',r.f,'Transfer pendapatan lainnya '+(i+1))+'</div>';
@@ -377,8 +404,11 @@ dialog .note{min-height:7rem;margin:6px 0 12px;background:var(--bg)}
     }).join('');
     return ''+
     '<section class="sheet"><h3>Jadwal lapangan</h3>'+
+      '<p class="hint">Di kolom Cash atau Transfer, ketik 1 untuk Member dan 2 untuk Turnamen. Keduanya tidak dihitung sebagai uang.</p>'+
       '<div class="row head g-slot"><span>Jam</span><span>Nama tim</span><span class="r hc">Cash</span><span class="r hf">Transfer</span></div>'+
       slots+
+      '<div class="row head g-slot"><span class="wide" style="grid-column:1/-1">Tambahan, tulis sendiri (misal DP)</span></div>'+
+      ext+
       '<div class="row tot g-slot"><span class="lbl">Total lapangan</span><span class="v c" data-t="lapC"></span><span class="v f" data-t="lapF"></span></div>'+
     '</section>'+
     '<section class="sheet"><h3>Pendapatan lainnya</h3>'+
@@ -448,7 +478,7 @@ dialog .note{min-height:7rem;margin:6px 0 12px;background:var(--bg)}
     if(t.classList.contains('num')){
       var digits=t.value.replace(/\D/g,'').slice(0,12);
       t.value=digits;
-      d[g][i][f]=num(digits);
+      d[g][i][f]=digits===''?null:num(digits);
     }else{
       d[g][i][f]=t.value;
     }
@@ -518,8 +548,12 @@ dialog .note{min-height:7rem;margin:6px 0 12px;background:var(--bg)}
   var BULAN3=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
   var yY=mY;
   function hasData(d){
-    var c=calc(d);
-    return c.any||d.k.trim()!==''||d.s.some(function(r){return r.t.trim()!==''})||d.o.some(function(r,i){return i>0&&r.n.trim()!==''})||d.x.some(function(r){return r.n.trim()!==''});
+    var has=function(r){return r.c!=null||r.f!=null};
+    return calc(d).any||d.k.trim()!==''||
+      d.s.some(function(r){return r.t.trim()!==''||has(r)})||
+      d.o.some(function(r,i){return (i>0&&r.n.trim()!=='')||has(r)})||
+      d.e.some(function(r){return r.t.trim()!==''||has(r)})||
+      d.x.some(function(r){return r.n.trim()!==''||r.a!=null});
   }
   function renderHist(){
     var keys=Object.keys(days).filter(function(k){return /^\d{4}-\d{2}-\d{2}$/.test(k)&&hasData(days[k])}).sort().reverse();
@@ -648,35 +682,51 @@ dialog .note{min-height:7rem;margin:6px 0 12px;background:var(--bg)}
     return out;
   }
   var rp=function(n){return 'Rp '+fmt(n)};
+  function cellIn(v){return v==null?'':v===1?'Member':v===2?'Turnamen':fmt(v)}
   function buildDay(date){
     var d=days[date]||blank(),c=calc(d),dt=parse(date),doc=newDoc();
     pTitle(doc,HARIF[dt.getDay()]+', '+dt.getDate()+' '+BULAN[dt.getMonth()]+' '+dt.getFullYear());
     var CS=[{x:PM+6,a:'l',w:76},{x:PM+92,a:'l',w:210},{x:448,a:'r',hc:K_CASH},{x:PM+PC-6,a:'r',hc:K_TF}];
+    var CE=[{x:PM+6,a:'l',w:340},{x:PM+92,a:'l',w:0},{x:448,a:'r'},{x:PM+PC-6,a:'r'}];
     var CI=[{x:PM+6,a:'l',w:300},{x:448,a:'r',hc:K_CASH},{x:PM+PC-6,a:'r',hc:K_TF}];
     var tot={b:true,bg:K_SOFT,nf:true};
-    pSect(doc,'Jadwal lapangan');
-    pHead(doc,['JAM','NAMA TIM','CASH','TRANSFER'],CS);
-    d.s.forEach(function(r,i){pRow(doc,[SL[i],r.t,r.c?fmt(r.c):'',r.f?fmt(r.f):''],CS)});
-    pRow(doc,['Total lapangan','',fmt(c.lapC),fmt(c.lapF)],CS,tot);
-    pSect(doc,'Pendapatan lainnya');
-    pHead(doc,['KETERANGAN','CASH','TRANSFER'],CI);
-    d.o.forEach(function(r){pRow(doc,[r.n,r.c?fmt(r.c):'',r.f?fmt(r.f):''],CI)});
-    pRow(doc,['Total lainnya',fmt(c.lainC),fmt(c.lainF)],CI,tot);
-    pRow(doc,['Lapangan + lainnya',fmt(c.incC),fmt(c.incF)],CI,tot);
-    pSect(doc,'Pengeluaran');
-    pHead(doc,['KEPERLUAN','CASH','TRANSFER'],CI);
-    d.x.forEach(function(r){pRow(doc,[r.n,r.m==='c'&&r.a?fmt(r.a):'',r.m==='f'&&r.a?fmt(r.a):''],CI)});
-    pRow(doc,['Total pengeluaran',fmt(c.outC),fmt(c.outF)],CI,tot);
-    pSect(doc,'Setelah pengeluaran');
-    pHead(doc,['LAPANGAN + LAINNYA - PENGELUARAN','CASH','TRANSFER'],CI);
-    pRow(doc,['Total',fmt(c.netC),fmt(c.netF)],CI,tot);
+    var slotRows=[],extRows=[],lainRows=[],outRows=[];
+    d.s.forEach(function(r,i){if(r.t.trim()||r.c!=null||r.f!=null)slotRows.push([SL[i],r.t,cellIn(r.c),cellIn(r.f)])});
+    d.e.forEach(function(r){if(r.t.trim()||r.c!=null||r.f!=null)extRows.push([r.t,'',cellIn(r.c),cellIn(r.f)])});
+    d.o.forEach(function(r,i){if((i>0&&r.n.trim())||r.c!=null||r.f!=null)lainRows.push([r.n,cellIn(r.c),cellIn(r.f)])});
+    d.x.forEach(function(r){if(r.n.trim()||r.a!=null)outRows.push([r.n,r.m==='c'&&r.a!=null?fmt(r.a):'',r.m==='f'&&r.a!=null?fmt(r.a):''])});
+    var hasLap=slotRows.length+extRows.length>0;
+    if(hasLap){
+      pSect(doc,'Jadwal lapangan');
+      pHead(doc,['JAM','NAMA TIM','CASH','TRANSFER'],CS);
+      slotRows.forEach(function(r){pRow(doc,r,CS)});
+      extRows.forEach(function(r){pRow(doc,r,CE)});
+      pRow(doc,['Total lapangan','',fmt(c.lapC),fmt(c.lapF)],CS,tot);
+    }
+    if(lainRows.length){
+      pSect(doc,'Pendapatan lainnya');
+      pHead(doc,['KETERANGAN','CASH','TRANSFER'],CI);
+      lainRows.forEach(function(r){pRow(doc,r,CI)});
+      pRow(doc,['Total lainnya',fmt(c.lainC),fmt(c.lainF)],CI,tot);
+      if(hasLap)pRow(doc,['Lapangan + lainnya',fmt(c.incC),fmt(c.incF)],CI,tot);
+    }
+    if(outRows.length){
+      pSect(doc,'Pengeluaran');
+      pHead(doc,['KEPERLUAN','CASH','TRANSFER'],CI);
+      outRows.forEach(function(r){pRow(doc,r,CI)});
+      pRow(doc,['Total pengeluaran',fmt(c.outC),fmt(c.outF)],CI,tot);
+      pSect(doc,'Setelah pengeluaran');
+      pHead(doc,['LAPANGAN + LAINNYA - PENGELUARAN','CASH','TRANSFER'],CI);
+      pRow(doc,['Total',fmt(c.netC),fmt(c.netF)],CI,tot);
+    }
     pSect(doc,'Rekap');
     pKV(doc,'Total seluruh cash',rp(c.netC));
     pKV(doc,'Total seluruh transfer',rp(c.netF));
     pKV(doc,'Total cash + TF',rp(c.allT),{bg:K_GRN,fg:'#ffffff',sz:10.5,vsz:14});
-    pSect(doc,'Keterangan');
-    var lines=d.k.trim()?wrapText(d.k,95):['-'];
-    lines.forEach(function(l){opT(doc,PM+2,doc.y+10,l,{sz:9.5});doc.y+=13});
+    if(d.k.trim()){
+      pSect(doc,'Keterangan');
+      wrapText(d.k,95).forEach(function(l){opT(doc,PM+2,doc.y+10,l,{sz:9.5});doc.y+=13});
+    }
     doc.y+=14;
     opT(doc,PM,doc.y+8,'Dibuat dengan aplikasi Kas Lapangan',{sz:7.5,c:K_MUT});
     doc.h=doc.y+PM;
@@ -779,17 +829,29 @@ dialog .note{min-height:7rem;margin:6px 0 12px;background:var(--bg)}
     a.download=name;document.body.appendChild(a);a.click();a.remove();
     setTimeout(function(){URL.revokeObjectURL(a.href)},4000);
   }
+  function jsonText(onlyDate){
+    var o={};
+    if(onlyDate){if(days[onlyDate])o[onlyDate]=days[onlyDate]}else o=days;
+    return JSON.stringify({app:'kas-lapangan',v:2,days:o});
+  }
+  function utf8(t){return new TextEncoder().encode(t)}
   async function doExport(kind,which){
     var msgEl=$(which==='month'?'#msgMonth':'#msgDay');
-    var doc=which==='month'?buildMonth():buildDay(cur);
     var base=which==='month'?'Kas-Lapangan-'+mY+'-'+pad(mM+1):'Kas-Lapangan-'+cur;
-    msgEl.textContent='Menyiapkan file…';
     try{
-      if(kind==='png'){
-        var cv=toCanvas(doc,3);
-        await deliver(base+'.png','image/png',fromB64(cv.toDataURL('image/png').split(',')[1]));
+      if(kind==='file'){
+        if(!days[cur]){msgEl.textContent='Hari ini belum ada catatan untuk disimpan.';return}
+        msgEl.textContent='Menyiapkan file\u2026';
+        await deliver('Kas-Lapangan-hari-'+cur+'.json','application/json',utf8(jsonText(cur)));
       }else{
-        await deliver(base+'.pdf','application/pdf',buildPdf(doc));
+        msgEl.textContent='Menyiapkan file\u2026';
+        var doc=which==='month'?buildMonth():buildDay(cur);
+        if(kind==='png'){
+          var cv=toCanvas(doc,3);
+          await deliver(base+'.png','image/png',fromB64(cv.toDataURL('image/png').split(',')[1]));
+        }else{
+          await deliver(base+'.pdf','application/pdf',buildPdf(doc));
+        }
       }
       msgEl.textContent='';
     }catch(e){
@@ -804,36 +866,79 @@ dialog .note{min-height:7rem;margin:6px 0 12px;background:var(--bg)}
   /*EXPORT-END*/
 
   /* cadangan */
-  var bk=$('#bk'),restorePending=false;
+  var bk=$('#bk'),restorePending=false,pendingBk=null;
   function msg(t){$('#bkMsg').textContent=t}
+  function resetBk(){restorePending=false;pendingBk=null;$('#bkApply').hidden=true;$('#bkRestore').textContent='Pulihkan dari teks'}
+  function parseBackup(raw){
+    var o;
+    try{o=JSON.parse(raw)}catch(e){return {err:'Isinya tidak terbaca. Pastikan ini file cadangan Kas Lapangan.'}}
+    if(!o||o.app!=='kas-lapangan'||!o.days||typeof o.days!=='object')return {err:'Ini bukan cadangan Kas Lapangan.'};
+    var keys=Object.keys(o.days).filter(function(k){return /^\d{4}-\d{2}-\d{2}$/.test(k)});
+    if(!keys.length)return {err:'Cadangan ini tidak berisi catatan hari.'};
+    return {o:o,keys:keys};
+  }
+  function applyBackup(p){
+    p.keys.forEach(function(k){days[k]=norm(p.o.days[k])});
+    try{localStorage.setItem(LKEY,JSON.stringify(days));mode='local'}catch(e){mode='mem'}
+    resetBk();$('#bkIn').value='';
+    idleStat();renderAll();show(view);
+    msg(p.keys.length+' hari dipulihkan.');
+  }
   $('#bkOpen').addEventListener('click',function(){
-    restorePending=false;msg('');$('#bkIn').value='';$('#bkRestore').textContent='Pulihkan';
+    resetBk();msg('');$('#bkIn').value='';
     if(bk.showModal)bk.showModal();else bk.setAttribute('open','');
   });
   $('#bkClose').addEventListener('click',function(){if(bk.close)bk.close();else bk.removeAttribute('open')});
+  $('#bkFile').addEventListener('click',async function(){
+    var n=Object.keys(days).length;
+    if(!n){msg('Belum ada catatan untuk disimpan.');return}
+    msg('Menyiapkan file\u2026');
+    try{
+      await deliver('Kas-Lapangan-cadangan-'+ymd(new Date())+'.json','application/json',utf8(jsonText()));
+      msg('');
+    }catch(e){
+      var m=String(e&&e.message||e);
+      msg(/cancel/i.test(m)?'':'Gagal menyimpan file. Coba lagi.');
+    }
+  });
+  $('#bkPickBtn').addEventListener('click',function(){$('#bkPick').click()});
+  $('#bkPick').addEventListener('change',function(e){
+    var inp=e.target,f=inp.files&&inp.files[0];
+    if(!f)return;
+    var r=new FileReader();
+    r.onload=function(){
+      var p=parseBackup(String(r.result));
+      if(p.err){resetBk();msg(p.err)}
+      else{
+        resetBk();pendingBk=p;
+        $('#bkApply').textContent='Pulihkan '+p.keys.length+' hari';$('#bkApply').hidden=false;
+        msg('File berisi '+p.keys.length+' hari. Tanggal yang sama akan diganti isi file. Ketuk tombol di bawah untuk melanjutkan.');
+      }
+      inp.value='';
+    };
+    r.onerror=function(){msg('File tidak bisa dibaca. Coba pilih lagi.');inp.value=''};
+    r.readAsText(f);
+  });
+  $('#bkApply').addEventListener('click',function(){if(pendingBk)applyBackup(pendingBk)});
   $('#bkCopy').addEventListener('click',function(){
-    var json=JSON.stringify({app:'kas-lapangan',v:1,days:days});
+    var json=jsonText();
     var n=Object.keys(days).length;
     var fallback=function(){var t=$('#bkIn');t.value=json;t.focus();t.select();msg('Salin teks di kotak bawah secara manual, lalu simpan.')};
     if(navigator.clipboard&&navigator.clipboard.writeText){
-      navigator.clipboard.writeText(json).then(function(){msg('Cadangan tersalin ('+n+' hari). Tempel dan simpan di tempat aman.')},fallback);
+      navigator.clipboard.writeText(json).then(function(){msg('Teks cadangan tersalin ('+n+' hari). Tempel dan simpan di tempat aman.')},fallback);
     }else fallback();
   });
-  $('#bkIn').addEventListener('input',function(){restorePending=false;$('#bkRestore').textContent='Pulihkan'});
+  $('#bkIn').addEventListener('input',function(){restorePending=false;$('#bkRestore').textContent='Pulihkan dari teks'});
   $('#bkRestore').addEventListener('click',function(){
-    var raw=$('#bkIn').value.trim(),o;
+    var raw=$('#bkIn').value.trim();
     if(!raw){msg('Tempel teks cadangan dulu.');return}
-    try{o=JSON.parse(raw)}catch(e){msg('Teks cadangan tidak terbaca. Pastikan tersalin utuh.');return}
-    if(!o||o.app!=='kas-lapangan'||!o.days||typeof o.days!=='object'){msg('Ini bukan cadangan Kas Lapangan.');return}
-    var keys=Object.keys(o.days).filter(function(k){return /^\d{4}-\d{2}-\d{2}$/.test(k)});
+    var p=parseBackup(raw);
+    if(p.err){msg(p.err);return}
     if(!restorePending){
       restorePending=true;$('#bkRestore').textContent='Ketuk lagi untuk memulihkan';
-      msg(keys.length+' hari ditemukan. Tanggal yang sama akan diganti isi cadangan.');return;
+      msg(p.keys.length+' hari ditemukan. Tanggal yang sama akan diganti isi cadangan.');return;
     }
-    keys.forEach(function(k){days[k]=norm(o.days[k])});
-    try{localStorage.setItem(LKEY,JSON.stringify(days));mode='local'}catch(e){mode='mem'}
-    restorePending=false;$('#bkRestore').textContent='Pulihkan';$('#bkIn').value='';
-    idleStat();renderAll();show(view);msg(keys.length+' hari dipulihkan.');
+    applyBackup(p);
   });
 
   initStore();
