@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0e7c52">
 <title>Kas Lapangan</title>
+<script src="config.js"></script>
 <style>
 html{color-scheme:light;-webkit-text-size-adjust:100%}
 body{margin:0}
@@ -47,7 +48,7 @@ h1,h2,h3{margin:0;font-family:var(--display);text-wrap:balance}
 
 /* header */
 .top{position:sticky;top:env(safe-area-inset-top,0px);z-index:11;background:var(--bg);border-bottom:1px solid var(--line);padding-top:12px}
-.brand{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.brand{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 12px}
 .brand h1{font-size:24px;font-weight:700;letter-spacing:.01em}
 .stat{font-size:12px;color:var(--muted)}
 .tabs{display:flex;gap:4px;margin-top:6px}
@@ -117,7 +118,8 @@ input.txt:focus,input.num:focus{outline:2px solid var(--accent);outline-offset:-
 .recap .r b{font:700 22px var(--display);font-variant-numeric:tabular-nums}
 .recap .grand{background:var(--accent);color:var(--on-accent);border-bottom:0;padding:16px 14px}
 .recap .grand span{color:var(--on-accent);opacity:.85}
-.recap .grand b{font-size:34px}
+.recap .grand b{font-size:clamp(22px,7.4vw,32px);white-space:nowrap}
+.recap .r{flex-wrap:wrap;gap:4px 12px}
 .note{width:100%;min-height:9.5rem;resize:vertical;font:inherit;font-size:15px;line-height:1.45;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px}
 .note:focus{outline:2px solid var(--accent);outline-offset:-2px}
 .lab{font:600 13px var(--display);letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin:0 0 6px}
@@ -150,6 +152,16 @@ dialog .note{min-height:7rem;margin:6px 0 12px;background:var(--bg)}
 .exrow{display:flex;gap:8px;flex-wrap:wrap}
 .sheet>.hint{padding:0 12px 10px}
 .g-slot .wide{grid-column:1/3}
+#login{position:fixed;inset:0;z-index:60;background:var(--bg);color:var(--ink);overflow:auto;padding:max(24px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 24px max(16px,env(safe-area-inset-left,0px));display:flex;justify-content:center;align-items:flex-start}
+.loginbox{width:min(100%,380px);display:flex;flex-direction:column;gap:6px;margin-top:10vh}
+.loginbox h1{font-size:30px;font-weight:700;margin-bottom:4px}
+.field{height:48px;width:100%;font:16px var(--body);color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:0 12px;margin-bottom:8px}
+.field:focus{outline:2px solid var(--accent);outline-offset:-2px}
+.loginbox .btn{margin-top:6px}
+.chk{display:flex;gap:10px;align-items:flex-start;margin:12px 0 4px;font-size:14px;line-height:1.35}
+.chk input{width:22px;height:22px;margin:0;flex:none;accent-color:var(--accent)}
+body.ro input[readonly],body.ro textarea[readonly]{cursor:default}
+body.ro .via button:disabled{opacity:.55;cursor:default}
 dialog details{margin:16px 0 14px}
 dialog summary{cursor:pointer;min-height:44px;display:flex;align-items:center;font:600 13px var(--display);letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
 .msg{min-height:1.4em;margin:8px 0 14px;font-size:13px;color:var(--muted)}
@@ -159,7 +171,7 @@ dialog summary{cursor:pointer;min-height:44px;display:flex;align-items:center;fo
 
 <div class="app">
   <header class="top">
-    <div class="brand"><h1>Kas Lapangan</h1><div class="right"><span id="stat" class="stat" aria-live="polite"></span><button type="button" class="chip small" id="bkOpen">Cadangan</button></div></div>
+    <div class="brand"><h1>Kas Lapangan</h1><div class="right"><span id="stat" class="stat" aria-live="polite"></span><button type="button" class="chip small" id="bkOpen">Pengaturan</button></div></div>
     <nav class="tabs" role="tablist" aria-label="Bagian aplikasi">
       <button type="button" role="tab" id="tab-month" aria-selected="false" aria-controls="v-month">Bulanan</button>
       <button type="button" role="tab" id="tab-day" aria-selected="true" aria-controls="v-day">Harian</button>
@@ -207,7 +219,7 @@ dialog summary{cursor:pointer;min-height:44px;display:flex;align-items:center;fo
       <div id="form" style="display:flex;flex-direction:column;gap:16px"></div>
       <div><p class="lab">Simpan laporan hari ini</p>
         <div class="exrow"><button type="button" class="btn" data-ex="png" data-w="day">Simpan gambar</button><button type="button" class="btn ghost" data-ex="pdf" data-w="day">Simpan PDF</button><button type="button" class="btn ghost" data-ex="file" data-w="day">Simpan file</button></div>
-        <p class="hint">Gambar dan PDF hanya memuat baris yang terisi. File berisi catatan hari ini dan bisa dibuka di HP lain lewat Cadangan, Buka file.</p>
+        <p class="hint">Gambar dan PDF hanya memuat baris yang terisi. File berisi catatan hari ini dan bisa dibuka di HP lain lewat Pengaturan, Buka file.</p>
         <p class="msg" id="msgDay" aria-live="polite"></p></div>
     </section>
 
@@ -252,14 +264,29 @@ dialog summary{cursor:pointer;min-height:44px;display:flex;align-items:center;fo
   </main>
 </div>
 
+<section id="login" hidden aria-label="Masuk">
+  <div class="loginbox">
+    <h1>Kas Lapangan</h1>
+    <p class="hint">Masuk dengan akun yang diberikan admin.</p>
+    <label class="lab" for="lgEmail" style="margin-top:14px">Email</label>
+    <input id="lgEmail" class="field" type="email" autocomplete="username" inputmode="email" autocapitalize="off" spellcheck="false">
+    <label class="lab" for="lgPass">Kata sandi</label>
+    <input id="lgPass" class="field" type="password" autocomplete="current-password">
+    <button type="button" class="btn" id="lgGo">Masuk</button>
+    <p class="msg" id="lgMsg" aria-live="polite"></p>
+  </div>
+</section>
+
 <dialog id="bk" aria-labelledby="bkT">
-  <h2 id="bkT">Cadangan data</h2>
-  <p class="hint">Data kas tersimpan di HP ini. Simpan file cadangan secara berkala, lalu kirim ke WhatsApp, email, atau Drive. Di HP lain, ketuk Buka file dan pilih file itu.</p>
+  <h2 id="bkT">Pengaturan dan cadangan</h2>
+  <label class="chk" for="setShort"><input type="checkbox" id="setShort"><span>Ketik 400 jadi 400.000. Angka di bawah 1.000 otomatis dikali 1.000 saat Enter atau pindah kolom. Angka 1 dan 2 tetap kode Member dan Turnamen.</span></label>
+  <div id="acctBox" hidden style="margin-top:14px"><p class="hint" id="acct" style="margin:0 0 8px"></p><button type="button" class="btn ghost" id="lgOut">Keluar</button></div>
+  <p class="hint" id="bkHint" style="margin-top:16px">Data kas tersimpan di HP ini. Simpan file cadangan secara berkala, lalu kirim ke WhatsApp, email, atau Drive.</p>
   <div class="bkrow" style="margin-top:12px"><button type="button" class="btn" id="bkFile">Simpan file</button><button type="button" class="btn ghost" id="bkPickBtn">Buka file</button></div>
   <input type="file" id="bkPick" accept=".json,application/json,text/plain,*/*" hidden>
   <p class="msg" id="bkMsg" aria-live="polite"></p>
   <p style="margin:0 0 10px"><button type="button" class="btn" id="bkApply" hidden>Pulihkan</button></p>
-  <details>
+  <details id="bkMore">
     <summary>Cara lain: salin teks</summary>
     <p style="margin:6px 0 0"><button type="button" class="btn ghost" id="bkCopy">Salin teks cadangan</button></p>
     <textarea id="bkIn" class="note" placeholder="Atau tempel teks cadangan di sini"></textarea>
@@ -313,6 +340,8 @@ dialog summary{cursor:pointer;min-height:44px;display:flex;align-items:center;fo
   }
   /* 1 = Member, 2 = Turnamen: kode, bukan uang */
   function val(v){return (v==null||v===1||v===2)?0:num(v)}
+  /* 400 -> 400.000: angka 3..999 dikali 1.000 (1 dan 2 adalah kode) */
+  function expandAmt(n){return (shortHand&&n>2&&n<1000)?n*1000:n}
   function sum(a,k){return a.reduce(function(t,r){return t+val(r[k])},0)}
   function calc(d){
     var r={};
@@ -331,11 +360,27 @@ dialog summary{cursor:pointer;min-height:44px;display:flex;align-items:center;fo
   var days={},dirty={},writing={},again={},ver={},timers={};
   var cur=ymd(new Date());
   var mY=parse(cur).getFullYear(),mM=parse(cur).getMonth();
-  var view='day',mode='pending',col=null,renderedJSON='';
+  var view='day',mode='pending',col=null,renderedJSON='',canWrite=true,shortHand=true;
   var LKEY='kas-lapangan-v1';
+  var AKEY='kas-lapangan-auth',SKEY2='kas-lapangan-sync',PKEY='kas-lapangan-pend',UKEY='kas-lapangan-user';
+  var CFG=window.KAS_CONFIG||{};
+  var SUPA=!!(CFG.url&&CFG.key&&/^https?:\/\//.test(CFG.url));
+  var POLL=Math.max(1000,Number(CFG.pollMs)||15000);
+  var auth=null,role=null,lastSync='',pend={},netOK=true,syncing=false,syncTimer=null,syncErr='',refreshing=null;
 
   function setStat(t){$('#stat').textContent=t}
-  function idleStat(){setStat(mode==='mem'?'Belum tersimpan':'Tersimpan di HP')}
+  function idleStat(){
+    if(mode==='mem')setStat('Belum tersimpan');
+    else if(mode==='db')setStat(canWrite?'Tersimpan, live':'Hanya lihat, live');
+    else if(mode==='supa'){
+      if(syncErr)setStat(syncErr);
+      else if(Object.keys(pend).length)setStat(netOK?'Mengirim\u2026':'Menunggu sambungan');
+      else if(!netOK)setStat(canWrite?'Offline, tersimpan di HP':'Offline, data terakhir');
+      else setStat(canWrite?'Tersimpan, sinkron':'Hanya lihat, sinkron');
+    }
+    else if(mode==='offline')setStat('Tidak tersambung');
+    else setStat('Tersimpan di HP');
+  }
 
   function loadLocal(){
     try{
@@ -346,6 +391,8 @@ dialog summary{cursor:pointer;min-height:44px;display:flex;align-items:center;fo
     idleStat();renderAll();
   }
   function persist(date){
+    if(mode==='supa')return persistSupa(date);
+    if(mode==='db')return col.doc(date).set(days[date]);
     if(mode==='local'){try{localStorage.setItem(LKEY,JSON.stringify(days))}catch(e){mode='mem'}}
     return Promise.resolve();
   }
@@ -367,22 +414,247 @@ dialog summary{cursor:pointer;min-height:44px;display:flex;align-items:center;fo
     });
   }
 
-  function initStore(){
-    loadLocal();
-    try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
+  function applyRole(){
+    document.body.classList.toggle('ro',!canWrite);
+    $('#bkPickBtn').hidden=!canWrite;
+    $('#bkMore').hidden=!canWrite;
+    $('#acctBox').hidden=!(mode==='supa'&&auth);
+  }
+  function onDays(snap){
+    snap.docs.forEach(function(s){
+      var id=s.id;
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(id)||dirty[id]||writing[id])return;
+      if(s.exists)days[id]=norm(s.data());
+    });
+    refreshViews();
+  }
+  function refreshViews(){
+    if(view==='month')renderMonth();
+    else if(view==='hist')renderHist();
+    else if(view==='year')renderYear();
+    var d=days[cur]||blank();
+    if(JSON.stringify(d)!==renderedJSON&&(!canWrite||!$('#form').contains(document.activeElement)))renderDay();
+  }
+  /* ===== Supabase: login, sinkron, antrean offline ===== */
+  function lsGet(k){try{return localStorage.getItem(k)}catch(e){return null}}
+  function lsSet(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+  function lsDel(k){try{localStorage.removeItem(k)}catch(e){}}
+  function localSave(){lsSet(LKEY,JSON.stringify(days))}
+  function savePend(){lsSet(PKEY,JSON.stringify(pend))}
+  function saveAuth(a){auth=a;if(a)lsSet(AKEY,JSON.stringify(a));else lsDel(AKEY)}
+  function sbHead(tok){var h={'apikey':CFG.key,'Content-Type':'application/json'};if(tok)h['Authorization']='Bearer '+tok;return h}
+  async function sbRaw(path,opt){
+    try{return await fetch(CFG.url.replace(/\/+$/,'')+path,opt)}
+    catch(e){throw {code:'net',message:'Tidak ada sambungan internet'}}
+  }
+  function expAt(j){return Date.now()+Math.max(30,(Number(j.expires_in)||3600)-30)*1000}
+  async function signIn(email,pass){
+    var r=await sbRaw('/auth/v1/token?grant_type=password',{method:'POST',headers:sbHead(),body:JSON.stringify({email:email,password:pass})});
+    var j={};try{j=await r.json()}catch(e){}
+    if(!r.ok)throw {code:r.status>=500?'net':'auth',message:j.error_description||j.msg||j.message||'Masuk gagal'};
+    var em=(j.user&&j.user.email)||email;
+    var prev=lsGet(UKEY);
+    if(prev&&prev!==em.toLowerCase()){days={};lsDel(LKEY);lsDel(SKEY2);lsDel(PKEY);pend={};lastSync=''}
+    lsSet(UKEY,em.toLowerCase());
+    saveAuth({access:j.access_token,refresh:j.refresh_token,exp:expAt(j),email:em,role:null});
+  }
+  async function refreshAuth(){
+    if(!auth||!auth.refresh)throw {code:'auth'};
+    var r=await sbRaw('/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:sbHead(),body:JSON.stringify({refresh_token:auth.refresh})});
+    var j={};try{j=await r.json()}catch(e){}
+    if(!r.ok){if(r.status>=500)throw {code:'net'};saveAuth(null);throw {code:'auth'}}
+    saveAuth({access:j.access_token,refresh:j.refresh_token||auth.refresh,exp:expAt(j),email:auth.email,role:auth.role});
+  }
+  function refreshOnce(){
+    if(!refreshing)refreshing=refreshAuth().then(function(){refreshing=null},function(e){refreshing=null;throw e});
+    return refreshing;
+  }
+  async function api(path,opt){
+    if(!auth)throw {code:'auth'};
+    if(Date.now()>=auth.exp)await refreshOnce();
+    var r;
+    for(var tries=0;tries<2;tries++){
+      var o=Object.assign({},opt||{});
+      o.headers=Object.assign(sbHead(auth.access),(opt&&opt.headers)||{});
+      r=await sbRaw(path,o);
+      if(r.status===401&&tries===0){await refreshOnce();continue}
+      break;
+    }
+    return r;
+  }
+  async function loadRole(){
+    var got=null,ok=false;
+    try{
+      var r=await api('/rest/v1/rpc/my_role',{method:'POST',body:'{}'});
+      if(r.ok){
+        ok=true;
+        var t=(await r.text()).trim();
+        try{t=JSON.parse(t)}catch(e){}
+        got=(t==='admin'||t==='viewer')?t:null;
+      }else if(r.status===404||r.status===400)throw {code:'setup'};
+    }catch(e){if(e&&(e.code==='auth'||e.code==='setup'))throw e}
+    if(ok){
+      if(!got){saveAuth(null);throw {code:'noaccess'}}
+      role=got;auth.role=got;saveAuth(auth);
+    }else if(auth&&auth.role)role=auth.role;
+    else throw {code:'net'};
+    canWrite=(role==='admin');
+  }
+  async function pull(){
+    var since=lastSync,newest=lastSync,off=0,got=0;
+    for(;;){
+      var q='/rest/v1/days?select=day,data,updated_at&order=updated_at.asc,day.asc&limit=500&offset='+off;
+      if(since)q+='&updated_at=gt.'+encodeURIComponent(since);
+      var r=await api(q);
+      if(!r.ok)throw {code:(r.status===404?'setup':'http'),status:r.status};
+      var rows=await r.json();
+      rows.forEach(function(row){
+        if(!row||!/^\d{4}-\d{2}-\d{2}$/.test(row.day))return;
+        if(row.updated_at>newest)newest=row.updated_at;
+        if(!dirty[row.day]&&!writing[row.day]&&!pend[row.day])days[row.day]=norm(row.data);
+      });
+      got+=rows.length;
+      if(rows.length<500)break;
+      off+=500;
+    }
+    lastSync=newest;
+    if(got){localSave();lsSet(SKEY2,lastSync);refreshViews()}
+  }
+  async function upload(date){
+    var r=await api('/rest/v1/days?on_conflict=day',{method:'POST',headers:{'Prefer':'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({day:date,data:days[date]})});
+    if(!r.ok)throw {code:(r.status===401?'auth':r.status===404?'setup':'denied'),status:r.status};
+  }
+  async function flushPending(){
+    var ks=Object.keys(pend);
+    for(var i=0;i<ks.length;i++){
+      var k=ks[i];
+      if(writing[k]||dirty[k])continue;
+      var v=ver[k]||0;
+      await upload(k);
+      if((ver[k]||0)===v){delete pend[k];savePend()}
+    }
+  }
+  async function persistSupa(date){
+    localSave();
+    pend[date]=true;savePend();
+    if(!canWrite)return;
+    var v=ver[date]||0;
+    try{
+      await upload(date);
+      netOK=true;syncErr='';
+      if((ver[date]||0)===v){delete pend[date];savePend()}
+    }catch(e){
+      if(e&&e.code==='net'){netOK=false;return}
+      if(e&&e.code==='auth'){showLogin('Sesi berakhir. Masuk lagi, data Anda aman di HP.');return}
+      throw e;
+    }
+  }
+  async function syncTick(){
+    if(syncing||!auth)return;
+    syncing=true;
+    try{
+      if(canWrite&&Object.keys(pend).length)await flushPending();
+      await pull();
+      netOK=true;syncErr='';
+    }catch(e){
+      if(e&&e.code==='auth')showLogin('Sesi berakhir. Masuk lagi, data Anda aman di HP.');
+      else if(e&&e.code==='setup')syncErr='Database belum disiapkan';
+      else if(e&&e.code==='denied')syncErr='Ditolak server';
+      else netOK=false;
+    }
+    syncing=false;idleStat();
+  }
+  function stopSync(){if(syncTimer){clearInterval(syncTimer);syncTimer=null}}
+  function startSync(){
+    stopSync();
+    syncTimer=setInterval(function(){if(!document.hidden)syncTick()},POLL);
+    syncTick();
+  }
+  function lgMsg(t){$('#lgMsg').textContent=t}
+  function showLogin(m){
+    stopSync();
+    $('#login').hidden=false;lgMsg(m||'');
+    setTimeout(function(){try{$('#lgEmail').focus()}catch(e){}},50);
+  }
+  async function afterLogin(){
+    try{await loadRole()}
+    catch(e){
+      var c=e&&e.code;
+      showLogin(c==='noaccess'?'Akun ini belum diberi akses. Hubungi admin.':c==='auth'?'Sesi berakhir. Masuk lagi.':c==='setup'?'Database belum disiapkan. Hubungi admin.':'Tidak bisa memeriksa akses. Cek internet lalu coba lagi.');
+      return false;
+    }
+    $('#login').hidden=true;
+    $('#acct').textContent=auth.email+' ('+(canWrite?'admin':'hanya lihat')+')';
+    $('#bkHint').textContent=canWrite
+      ?'Data tersimpan di server dan tersinkron ke semua perangkat. Simpan file cadangan sesekali sebagai arsip.'
+      :'Anda hanya bisa melihat. Data dikelola admin dan diperbarui otomatis.';
+    applyRole();idleStat();renderAll();show(view);
+    startSync();
+    return true;
+  }
+  async function initSupa(){
+    loadLocal();mode='supa';
+    try{pend=JSON.parse(lsGet(PKEY)||'{}')||{}}catch(e){pend={}}
+    lastSync=lsGet(SKEY2)||'';
+    try{auth=JSON.parse(lsGet(AKEY)||'null')}catch(e){auth=null}
+    if(!auth){canWrite=false;applyRole();renderAll();idleStat();showLogin('');return}
+    role=auth.role||null;
+    canWrite=(role==='admin');
+    applyRole();renderAll();idleStat();
+    await afterLogin();
+  }
+  async function doLogin(){
+    var em=$('#lgEmail').value.trim(),pw=$('#lgPass').value;
+    if(!em||!pw){lgMsg('Isi email dan kata sandi.');return}
+    $('#lgGo').disabled=true;lgMsg('Masuk…');
+    try{
+      await signIn(em,pw);
+      $('#lgPass').value='';
+      await afterLogin();
+    }catch(e){
+      lgMsg(e&&e.code==='net'?'Tidak ada sambungan internet.':'Email atau kata sandi salah.');
+    }
+    $('#lgGo').disabled=false;
+  }
+
+  async function initStore(){
+    var C=window.claude;
+    if(!(C&&typeof C.use==='function')&&SUPA){await initSupa();return}
+    if(!(C&&typeof C.use==='function')){
+      loadLocal();
+      try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
+      return;
+    }
+    try{
+      var db=await C.use('db'),user=await C.use('user');
+      if(!db){
+        mode='offline';canWrite=false;applyRole();renderAll();
+        setStat('Tidak tersambung. Masuk ke Claude untuk melihat data.');
+        return;
+      }
+      canWrite=user?!!(await user.canEdit()):false;
+      col=db.collection('days');mode='db';
+      $('#bkHint').textContent=canWrite
+        ?'Data kas tersimpan bersama dan terlihat live oleh semua yang diberi akses lihat. Simpan file cadangan sesekali sebagai arsip.'
+        :'Anda hanya bisa melihat. Data dikelola oleh admin dan diperbarui otomatis.';
+      applyRole();idleStat();renderAll();
+      col.onSnapshot(onDays,function(){mode='offline';idleStat()});
+    }catch(e){
+      mode='offline';canWrite=false;applyRole();renderAll();idleStat();
+    }
   }
 
   /* day form */
   function txt(g,i,f,val,ph,label,ro){
-    return '<input class="txt'+(ro?' ro':'')+'" data-g="'+g+'" data-i="'+i+'" data-f="'+f+'" value="'+esc(val)+'" placeholder="'+esc(ph)+'" aria-label="'+esc(label)+'" autocomplete="off"'+(ro?' readonly':'')+'>';
+    return '<input class="txt'+(ro?' ro':'')+'" data-g="'+g+'" data-i="'+i+'" data-f="'+f+'" value="'+esc(val)+'" placeholder="'+esc(ph)+'" aria-label="'+esc(label)+'" autocomplete="off"'+((ro||!canWrite)?' readonly':'')+'>';
   }
   function nm(g,i,f,val,label){
-    return '<input class="num" inputmode="numeric" data-g="'+g+'" data-i="'+i+'" data-f="'+f+'" value="'+(val==null?'':fmt(val))+'" placeholder="0" aria-label="'+esc(label)+'" autocomplete="off">';
+    return '<input class="num" inputmode="numeric" data-g="'+g+'" data-i="'+i+'" data-f="'+f+'" value="'+(val==null?'':fmt(val))+'" placeholder="–" aria-label="'+esc(label)+'" autocomplete="off"'+(canWrite?'':' readonly')+'>';
   }
   function via(i,m){
     return '<span class="via" role="group" aria-label="Dibayar via, pengeluaran '+(i+1)+'">'+
-      '<button type="button" data-g="x" data-i="'+i+'" data-m="c" aria-pressed="'+(m==='c')+'">Cash</button>'+
-      '<button type="button" data-g="x" data-i="'+i+'" data-m="f" aria-pressed="'+(m==='f')+'">TF</button></span>';
+      '<button type="button" data-g="x" data-i="'+i+'" data-m="c" aria-pressed="'+(m==='c')+'"'+(canWrite?'':' disabled')+'>Cash</button>'+
+      '<button type="button" data-g="x" data-i="'+i+'" data-m="f" aria-pressed="'+(m==='f')+'"'+(canWrite?'':' disabled')+'>TF</button></span>';
   }
   function formHTML(d){
     var slots=d.s.map(function(r,i){
@@ -391,7 +663,7 @@ dialog summary{cursor:pointer;min-height:44px;display:flex;align-items:center;fo
     }).join('');
     var ext=d.e.map(function(r,i){
       return '<div class="row g-slot">'+
-        txt('e',i,'t',r.t,'Tulis sendiri (misal DP BENTE tgl 08/10 pkl 20.00)','Tambahan '+(i+1)+', keterangan').replace('class="txt"','class="txt wide" maxlength="70"')+
+        txt('e',i,'t',r.t,'Tulis sendiri (misal DP)','Tambahan '+(i+1)+', keterangan').replace('class="txt"','class="txt wide" maxlength="70"')+
         nm('e',i,'c',r.c,'Cash tambahan '+(i+1))+nm('e',i,'f',r.f,'Transfer tambahan '+(i+1))+'</div>';
     }).join('');
     var lain=d.o.map(function(r,i){
@@ -432,7 +704,7 @@ dialog summary{cursor:pointer;min-height:44px;display:flex;align-items:center;fo
       '<div class="r"><span>Total seluruh transfer</span><b class="f" data-t="allF" data-rp="1"></b></div>'+
       '<div class="r grand"><span>Total cash + TF</span><b data-t="allT" data-rp="1"></b></div>'+
     '</div>'+
-    '<div><p class="lab">Keterangan</p><textarea class="note" id="note" aria-label="Keterangan" placeholder="Catatan hari ini: tim yang batal, kerusakan, pesan untuk besok…">'+esc(d.k)+'</textarea></div>';
+    '<div><p class="lab">Keterangan</p><textarea class="note" id="note" aria-label="Keterangan"'+(canWrite?'':' readonly')+' placeholder="Catatan hari ini: tim yang batal, kerusakan, pesan untuk besok…">'+esc(d.k)+'</textarea></div>';
   }
   function updateTotals(){
     var d=days[cur]||blank();
@@ -466,14 +738,36 @@ dialog summary{cursor:pointer;min-height:44px;display:flex;align-items:center;fo
   form.addEventListener('focusout',function(e){
     var t=e.target;
     if(t.classList&&t.classList.contains('num')){
-      var d=t.value.replace(/\D/g,'');t.value=d?fmt(Number(d)):'';
+      var digits=t.value.replace(/\D/g,'');
+      if(digits===''){t.value='';return}
+      var n=Number(digits),m=n;
+      if(canWrite&&t._edited)m=expandAmt(n);
+      t.value=fmt(m);
+      if(m!==n){
+        var d=ensure();
+        d[t.getAttribute('data-g')][+t.getAttribute('data-i')][t.getAttribute('data-f')]=m;
+        renderedJSON=JSON.stringify(d);
+        touch(cur);updateTotals();
+      }
+      t._edited=false;
+    }
+  });
+  form.addEventListener('keydown',function(e){
+    var t=e.target;
+    if(e.key==='Enter'&&t.tagName==='INPUT'){
+      e.preventDefault();
+      var all=Array.prototype.slice.call(form.querySelectorAll('input.num,input.txt:not([readonly])'));
+      var nx=all[all.indexOf(t)+1];
+      if(nx)nx.focus();else t.blur();
     }
   });
   form.addEventListener('input',function(e){
+    if(!canWrite)return;
     var t=e.target;
     if(t.id==='note'){ensure().k=t.value;renderedJSON=JSON.stringify(days[cur]);touch(cur);return}
     var g=t.getAttribute&&t.getAttribute('data-g');
     if(!g)return;
+    t._edited=true;
     var d=ensure(),i=+t.getAttribute('data-i'),f=t.getAttribute('data-f');
     if(t.classList.contains('num')){
       var digits=t.value.replace(/\D/g,'').slice(0,12);
@@ -486,6 +780,7 @@ dialog summary{cursor:pointer;min-height:44px;display:flex;align-items:center;fo
     touch(cur);updateTotals();
   });
   form.addEventListener('click',function(e){
+    if(!canWrite)return;
     var b=e.target.closest('button[data-m]');
     if(!b)return;
     var d=ensure(),i=+b.getAttribute('data-i'),m=b.getAttribute('data-m');
@@ -824,6 +1119,13 @@ dialog summary{cursor:pointer;min-height:44px;display:flex;align-items:center;fo
       await cap.Plugins.Share.share({title:name,dialogTitle:'Simpan atau kirim file',files:[f.uri]});
       return;
     }
+    var C=window.claude;
+    if(C&&typeof C.use==='function'){
+      var dl=await C.use('downloads');
+      if(!dl)throw new Error('Penyimpanan file tidak tersedia di sini');
+      await dl.save({filename:name,data:u8});
+      return;
+    }
     var a=document.createElement('a');
     a.href=URL.createObjectURL(new Blob([u8],{type:mime}));
     a.download=name;document.body.appendChild(a);a.click();a.remove();
@@ -835,6 +1137,7 @@ dialog summary{cursor:pointer;min-height:44px;display:flex;align-items:center;fo
     return JSON.stringify({app:'kas-lapangan',v:2,days:o});
   }
   function utf8(t){return new TextEncoder().encode(t)}
+  function isCancel(e){return !!e&&(e.code==='declined'||/cancel/i.test(String(e.message||e)))}
   async function doExport(kind,which){
     var msgEl=$(which==='month'?'#msgMonth':'#msgDay');
     var base=which==='month'?'Kas-Lapangan-'+mY+'-'+pad(mM+1):'Kas-Lapangan-'+cur;
@@ -855,8 +1158,7 @@ dialog summary{cursor:pointer;min-height:44px;display:flex;align-items:center;fo
       }
       msgEl.textContent='';
     }catch(e){
-      var m=String(e&&e.message||e);
-      msgEl.textContent=/cancel/i.test(m)?'':'Gagal membuat file. Coba lagi.';
+      msgEl.textContent=isCancel(e)?'':'Gagal membuat file. Coba lagi.';
     }
   }
   document.addEventListener('click',function(e){
@@ -877,12 +1179,31 @@ dialog summary{cursor:pointer;min-height:44px;display:flex;align-items:center;fo
     if(!keys.length)return {err:'Cadangan ini tidak berisi catatan hari.'};
     return {o:o,keys:keys};
   }
-  function applyBackup(p){
-    p.keys.forEach(function(k){days[k]=norm(p.o.days[k])});
-    try{localStorage.setItem(LKEY,JSON.stringify(days));mode='local'}catch(e){mode='mem'}
-    resetBk();$('#bkIn').value='';
-    idleStat();renderAll();show(view);
-    msg(p.keys.length+' hari dipulihkan.');
+  async function applyBackup(p){
+    if(!canWrite){msg('Akun ini hanya bisa melihat, tidak bisa memulihkan data.');return}
+    msg('Memulihkan…');
+    try{
+      for(var i=0;i<p.keys.length;i++){
+        var k=p.keys[i],nv=norm(p.o.days[k]);
+        days[k]=nv;
+        if(mode==='db'){dirty[k]=true;try{await col.doc(k).set(nv)}finally{delete dirty[k]}}
+        else if(mode==='supa'){pend[k]=true;ver[k]=(ver[k]||0)+1}
+      }
+      var note='';
+      if(mode==='supa'){
+        savePend();localSave();
+        try{await flushPending();netOK=true}
+        catch(e){if(e&&e.code==='net'){netOK=false;note=' Belum terkirim ke server, akan dikirim otomatis saat tersambung.'}else throw e}
+      }else if(mode!=='db'){
+        try{localStorage.setItem(LKEY,JSON.stringify(days));mode='local'}catch(e){mode='mem'}
+      }
+      resetBk();$('#bkIn').value='';
+      idleStat();renderAll();show(view);
+      msg(p.keys.length+' hari dipulihkan.'+note);
+    }catch(e){
+      renderAll();show(view);
+      msg('Pemulihan terhenti sebelum selesai. Buka file yang sama lagi untuk melanjutkan.');
+    }
   }
   $('#bkOpen').addEventListener('click',function(){
     resetBk();msg('');$('#bkIn').value='';
@@ -897,8 +1218,7 @@ dialog summary{cursor:pointer;min-height:44px;display:flex;align-items:center;fo
       await deliver('Kas-Lapangan-cadangan-'+ymd(new Date())+'.json','application/json',utf8(jsonText()));
       msg('');
     }catch(e){
-      var m=String(e&&e.message||e);
-      msg(/cancel/i.test(m)?'':'Gagal menyimpan file. Coba lagi.');
+      msg(isCancel(e)?'':'Gagal menyimpan file. Coba lagi.');
     }
   });
   $('#bkPickBtn').addEventListener('click',function(){$('#bkPick').click()});
@@ -941,8 +1261,29 @@ dialog summary{cursor:pointer;min-height:44px;display:flex;align-items:center;fo
     applyBackup(p);
   });
 
+  var SKEY='kas-lapangan-short';
+  try{if(localStorage.getItem(SKEY)==='0')shortHand=false}catch(e){}
+  $('#setShort').checked=shortHand;
+  $('#setShort').addEventListener('change',function(e){
+    shortHand=!!e.target.checked;
+    try{localStorage.setItem(SKEY,shortHand?'1':'0')}catch(x){}
+  });
+
+  $('#lgGo').addEventListener('click',doLogin);
+  $('#lgPass').addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();doLogin()}});
+  $('#lgEmail').addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();$('#lgPass').focus()}});
+  $('#lgOut').addEventListener('click',function(){
+    if(Object.keys(pend).length){msg('Masih ada data belum terkirim. Sambungkan internet dulu, lalu coba lagi.');return}
+    saveAuth(null);role=null;canWrite=false;
+    if(bk.close)bk.close();else bk.removeAttribute('open');
+    applyRole();renderAll();showLogin('');
+  });
+  window.addEventListener('online',function(){if(mode==='supa'&&auth)syncTick()});
+  document.addEventListener('visibilitychange',function(){if(!document.hidden&&mode==='supa'&&auth)syncTick()});
+
   initStore();
 })();
+
 </script>
 </body>
 </html>
